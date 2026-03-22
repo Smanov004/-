@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const db = require('./database/db');
 
@@ -13,12 +13,11 @@ const viewsPath = path.join(__dirname, 'views');
 app.set('view engine', 'ejs');
 app.set('views', viewsPath);
 
-
-app.use(session({
-    secret: 'car-dealership-secret-key-2025',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 } // 24 часа
+// Сессия в cookie — работает на Vercel (serverless)
+app.use(cookieSession({
+    name: 'session',
+    keys: ['car-dealership-secret-key-2025'],
+    maxAge: 24 * 60 * 60 * 1000
 }));
 
 // Middleware для правильной работы include в EJS
@@ -121,9 +120,8 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
-    req.session.destroy(() => {
-        res.redirect(303, '/login');
-    });
+    req.session = null;
+    res.redirect(303, '/login');
 });
 
 // Применяем аутентификацию ко всем маршрутам кроме логина и статических файлов
