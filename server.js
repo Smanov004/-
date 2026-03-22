@@ -112,8 +112,8 @@ app.post('/login', async (req, res) => {
             role: user.role,
             email: user.email
         };
-        
-        res.redirect('/dashboard');
+        // 303 — браузер всегда делает GET при редиректе (избегаем "Cannot POST /dashboard")
+        res.redirect(303, '/dashboard');
     } catch (error) {
         console.error('Ошибка входа:', error);
         res.render('auth/login', { error: 'Ошибка входа в систему' });
@@ -121,8 +121,9 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/login');
+    req.session.destroy(() => {
+        res.redirect(303, '/login');
+    });
 });
 
 // Применяем аутентификацию ко всем маршрутам кроме логина и статических файлов
@@ -140,7 +141,11 @@ app.use((req, res, next) => {
 
 // ========== ОСНОВНЫЕ МАРШРУТЫ ==========
 app.get('/', (req, res) => {
-    res.redirect('/dashboard');
+    res.redirect(302, '/dashboard');
+});
+// Запасной обработчик, если POST случайно попал на /dashboard (редко)
+app.post('/dashboard', (req, res) => {
+    res.redirect(303, '/dashboard');
 });
 
 // Dashboard с аналитикой
