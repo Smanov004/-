@@ -412,21 +412,25 @@ app.get('/reports', requireRole('admin', 'supervisor'), async (req, res) => {
     }
 });
 
-// Запуск сервера
-db.init().then(async () => {
-    try {
-        await createDefaultUsers();
-    } catch (err) {
-        console.error('Ошибка создания пользователей:', err);
-    }
-    app.listen(PORT, () => {
-        console.log(`Сервер автосалона запущен на http://localhost:${PORT}`);
-        console.log(`Вход: http://localhost:${PORT}/login`);
+// Запуск сервера (только локально; на Vercel используется api/index.js)
+if (!process.env.VERCEL) {
+    db.init().then(async () => {
+        try {
+            await createDefaultUsers();
+        } catch (err) {
+            console.error('Ошибка создания пользователей:', err);
+        }
+        app.listen(PORT, () => {
+            console.log(`Сервер автосалона запущен на http://localhost:${PORT}`);
+            console.log(`Вход: http://localhost:${PORT}/login`);
+        });
+    }).catch(err => {
+        console.error('Ошибка инициализации БД:', err);
+        app.listen(PORT, () => {
+            console.log(`Сервер автосалона запущен на http://localhost:${PORT}`);
+            console.log(`Вход: http://localhost:${PORT}/login`);
+        });
     });
-}).catch(err => {
-    console.error('Ошибка инициализации БД:', err);
-    app.listen(PORT, () => {
-        console.log(`Сервер автосалона запущен на http://localhost:${PORT}`);
-        console.log(`Вход: http://localhost:${PORT}/login`);
-    });
-});
+}
+
+module.exports = { app, createDefaultUsers };
