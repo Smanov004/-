@@ -1,0 +1,66 @@
+<%- include('../partials/header', { title: 'Гарантийное обслуживание', currentPage: 'warranty', user: typeof user !== 'undefined' ? user : null }) %>
+
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h2>Гарантийное обслуживание</h2>
+            <a href="/warranty/new" class="btn btn-primary">Зарегистрировать гарантийный случай</a>
+        </div>
+        
+        <% if (warrantyServices && warrantyServices.length > 0) { %>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Автомобиль</th>
+                            <th>Клиент</th>
+                            <th>Дата обращения</th>
+                            <th>Описание проблемы</th>
+                            <th>Статус</th>
+                            <th>Стоимость ремонта</th>
+                            <th>Дата завершения</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% warrantyServices.forEach(ws => { %>
+                            <tr>
+                                <td><%= ws.id %></td>
+                                <td><strong><%= ws.car_name || 'Не указан' %></strong></td>
+                                <td>
+                                    <%= ws.client_name || 'Не указан' %><br>
+                                    <small style="color: var(--text-secondary);"><%= ws.client_phone || '' %></small>
+                                </td>
+                                <td><%= new Date(ws.issue_date).toLocaleDateString('ru-RU') %></td>
+                                <td><%= ws.description || '-' %></td>
+                                <td>
+                                    <span class="badge badge-<%= ws.status === 'completed' ? 'success' : ws.status === 'in_progress' ? 'info' : ws.status === 'rejected' ? 'danger' : 'warning' %>">
+                                        <%= ws.status === 'pending' ? 'Ожидает' : ws.status === 'in_progress' ? 'В работе' : ws.status === 'completed' ? 'Завершено' : 'Отклонено' %>
+                                    </span>
+                                </td>
+                                <td><%= parseFloat(ws.repair_cost || 0).toLocaleString('ru-RU') %> ₽</td>
+                                <td><%= ws.completion_date ? new Date(ws.completion_date).toLocaleDateString('ru-RU') : '-' %></td>
+                                <td style="display: flex; gap: 0.5rem;">
+                                    <a href="/warranty/<%= ws.id %>/edit" class="btn btn-sm btn-secondary">Редактировать</a>
+                                    <% if (typeof user !== 'undefined' && user && (user.role === 'admin' || user.role === 'supervisor')) { %>
+                                    <form method="POST" action="/warranty/<%= ws.id %>/delete" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот гарантийный случай?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                                    </form>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } else { %>
+            <div class="empty-state">
+                <p>Гарантийные случаи не найдены</p>
+                <a href="/warranty/new" class="btn btn-primary">Зарегистрировать первый гарантийный случай</a>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,60 @@
+<%- include('../partials/header', { title: car ? 'Редактировать автомобиль' : 'Добавить автомобиль', currentPage: 'cars', user: typeof user !== 'undefined' ? user : null }) %>
+
+<div class="container">
+    <div class="form-container">
+        <h2 style="margin-bottom: 1.5rem;"><%= car ? 'Редактировать автомобиль' : 'Добавить новый автомобиль' %></h2>
+        
+        <form method="POST" action="<%= car ? '/cars/' + car.id + '/update' : '/cars' %>" class="form">
+            <div class="form-group">
+                <label for="brand">Марка *</label>
+                <input type="text" id="brand" name="brand" value="<%= car ? car.brand : '' %>" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="model">Модель *</label>
+                <input type="text" id="model" name="model" value="<%= car ? car.model : '' %>" required>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="year">Год выпуска *</label>
+                    <input type="number" id="year" name="year" value="<%= car ? car.year : '' %>" min="1900" max="2030" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="price">Цена (₽) *</label>
+                    <input type="number" id="price" name="price" value="<%= car ? car.price : '' %>" min="0" step="1000" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="color">Цвет</label>
+                    <input type="text" id="color" name="color" value="<%= car ? car.color : '' %>">
+                </div>
+                
+                <div class="form-group">
+                    <label for="mileage">Пробег (км)</label>
+                    <input type="number" id="mileage" name="mileage" value="<%= car ? car.mileage : '0' %>" min="0">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="status">Статус *</label>
+                <select id="status" name="status" required>
+                    <option value="available" <%= car && car.status === 'available' ? 'selected' : '' %>>Доступен</option>
+                    <option value="sold" <%= car && car.status === 'sold' ? 'selected' : '' %>>Продан</option>
+                </select>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <%= car ? 'Сохранить изменения' : 'Добавить' %>
+                </button>
+                <a href="/cars" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

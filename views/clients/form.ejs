@@ -1,0 +1,46 @@
+<%- include('../partials/header', { title: client ? 'Редактировать клиента' : 'Добавить клиента', currentPage: 'clients', user: typeof user !== 'undefined' ? user : null }) %>
+
+<div class="container">
+    <div class="form-container">
+        <h2 style="margin-bottom: 1.5rem;"><%= client ? 'Редактировать клиента' : 'Добавить нового клиента' %></h2>
+        
+        <form method="POST" action="<%= client ? '/clients/' + client.id + '/update' : '/clients' %>" class="form">
+            <div class="form-group">
+                <label for="name">Имя *</label>
+                <input type="text" id="name" name="name" value="<%= client ? client.name : '' %>" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Телефон *</label>
+                <input type="tel" id="phone" name="phone" value="<%= client ? client.phone : '' %>" placeholder="+7 (999) 123-45-67" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="<%= client ? client.email : '' %>">
+            </div>
+            
+            <div class="form-group">
+                <label for="address">Адрес</label>
+                <textarea id="address" name="address" rows="3"><%= client ? client.address : '' %></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <%= client ? 'Сохранить изменения' : 'Добавить' %>
+                </button>
+                <a href="/clients" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>
+
+
+
+
+
+
+
+

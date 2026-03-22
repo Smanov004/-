@@ -1,0 +1,98 @@
+<%- include('../partials/header', { title: warrantyService ? 'Редактировать гарантийный случай' : 'Зарегистрировать гарантийный случай', currentPage: 'warranty', user: typeof user !== 'undefined' ? user : null }) %>
+
+<div class="container">
+    <div class="form-container">
+        <h2 style="margin-bottom: 1.5rem;"><%= warrantyService ? 'Редактировать гарантийный случай' : 'Зарегистрировать гарантийный случай' %></h2>
+        
+        <form method="POST" action="<%= warrantyService ? '/warranty/' + warrantyService.id + '/update' : '/warranty' %>" class="form">
+            <div class="form-group">
+                <label for="sale_id">Продажа *</label>
+                <select id="sale_id" name="sale_id" required <%= warrantyService ? 'disabled' : '' %>>
+                    <option value="">Выберите продажу</option>
+                    <% if (sales && sales.length > 0) { %>
+                        <% sales.forEach(sale => { %>
+                            <option value="<%= sale.id %>" 
+                                    data-car-id="<%= sale.car_id %>" 
+                                    data-client-id="<%= sale.client_id %>"
+                                    <%= warrantyService && warrantyService.sale_id == sale.id ? 'selected' : '' %>>
+                                <%= sale.car_name %> - <%= sale.client_name %> (<%= new Date(sale.sale_date).toLocaleDateString('ru-RU') %>)
+                            </option>
+                        <% }); %>
+                    <% } %>
+                </select>
+                <% if (!sales || sales.length === 0) { %>
+                    <small class="form-help" style="display: block; margin-top: 0.5rem; color: var(--text-secondary);">
+                        Нет продаж. <a href="/sales/new">Оформить продажу</a>
+                    </small>
+                <% } %>
+                <% if (warrantyService) { %>
+                    <input type="hidden" name="sale_id" value="<%= warrantyService.sale_id %>">
+                <% } %>
+            </div>
+            
+            <input type="hidden" id="car_id" name="car_id" value="<%= warrantyService ? warrantyService.car_id : '' %>">
+            <input type="hidden" id="client_id" name="client_id" value="<%= warrantyService ? warrantyService.client_id : '' %>">
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="issue_date">Дата обращения *</label>
+                    <input type="date" id="issue_date" name="issue_date" 
+                           value="<%= warrantyService ? warrantyService.issue_date : new Date().toISOString().split('T')[0] %>" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="status">Статус *</label>
+                    <select id="status" name="status" required>
+                        <option value="pending" <%= warrantyService && warrantyService.status === 'pending' ? 'selected' : '' %>>Ожидает</option>
+                        <option value="in_progress" <%= warrantyService && warrantyService.status === 'in_progress' ? 'selected' : '' %>>В работе</option>
+                        <option value="completed" <%= warrantyService && warrantyService.status === 'completed' ? 'selected' : '' %>>Завершено</option>
+                        <option value="rejected" <%= warrantyService && warrantyService.status === 'rejected' ? 'selected' : '' %>>Отклонено</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Описание проблемы *</label>
+                <textarea id="description" name="description" rows="5" required><%= warrantyService ? warrantyService.description : '' %></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="repair_cost">Стоимость ремонта (₽)</label>
+                    <input type="number" id="repair_cost" name="repair_cost" 
+                           value="<%= warrantyService ? warrantyService.repair_cost : '0' %>" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="completion_date">Дата завершения</label>
+                    <input type="date" id="completion_date" name="completion_date" 
+                           value="<%= warrantyService && warrantyService.completion_date ? warrantyService.completion_date : '' %>">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="notes">Примечания</label>
+                <textarea id="notes" name="notes" rows="3"><%= warrantyService ? warrantyService.notes || '' : '' %></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <%= warrantyService ? 'Сохранить изменения' : 'Зарегистрировать' %>
+                </button>
+                <a href="/warranty" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('sale_id').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            document.getElementById('car_id').value = selectedOption.dataset.carId;
+            document.getElementById('client_id').value = selectedOption.dataset.clientId;
+        }
+    });
+</script>
+
+<%- include('../partials/footer') %>

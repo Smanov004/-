@@ -1,0 +1,86 @@
+<%- include('../partials/header', { title: 'Отчёты', currentPage: 'reports', user: typeof user !== 'undefined' ? user : null }) %>
+
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h2>Отчёты по продажам</h2>
+        </div>
+        
+        <!-- Фильтры -->
+        <form method="GET" action="/reports" class="form-row" style="margin-bottom: 2rem;">
+            <div class="form-group">
+                <label for="startDate">Дата начала</label>
+                <input type="date" id="startDate" name="startDate" value="<%= typeof startDate !== 'undefined' ? startDate : '' %>">
+            </div>
+            <div class="form-group">
+                <label for="endDate">Дата окончания</label>
+                <input type="date" id="endDate" name="endDate" value="<%= typeof endDate !== 'undefined' ? endDate : '' %>">
+            </div>
+            <div class="form-group" style="display: flex; align-items: flex-end;">
+                <button type="submit" class="btn btn-primary">Применить фильтр</button>
+                <a href="/reports" class="btn btn-secondary" style="margin-left: 0.5rem;">Сбросить</a>
+            </div>
+        </form>
+        
+        <% if (reports && reports.sales) { %>
+            <div style="margin-bottom: 1.5rem;">
+                <div class="kpi-card" style="max-width: 400px;">
+                    <div class="kpi-icon green">💰</div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">Общая сумма продаж</div>
+                        <div class="kpi-value"><%= reports.total.toLocaleString('ru-RU') %> ₽</div>
+                        <div class="kpi-label">Количество продаж: <%= reports.sales.length %></div>
+                    </div>
+                </div>
+            </div>
+            
+            <% if (reports.sales.length > 0) { %>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Автомобиль</th>
+                                <th>Клиент</th>
+                                <th>Телефон</th>
+                                <th>Менеджер</th>
+                                <th>Дата продажи</th>
+                                <th>Цена (₽)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% reports.sales.forEach(sale => { %>
+                                <tr>
+                                    <td><%= sale.id %></td>
+                                    <td><strong><%= sale.car_name || 'Не указан' %></strong></td>
+                                    <td><%= sale.client_name || 'Не указан' %></td>
+                                    <td><%= sale.client_phone || '-' %></td>
+                                    <td><%= sale.manager_name || 'Не указан' %></td>
+                                    <td><%= new Date(sale.sale_date).toLocaleDateString('ru-RU') %></td>
+                                    <td><strong><%= parseFloat(sale.price).toLocaleString('ru-RU') %></strong></td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="6" style="text-align: right;"><strong>Итого:</strong></td>
+                                <td><strong><%= reports.total.toLocaleString('ru-RU') %> ₽</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            <% } else { %>
+                <div class="empty-state">
+                    <p>Нет данных за выбранный период</p>
+                </div>
+            <% } %>
+        <% } else { %>
+            <div class="empty-state">
+                <p>Выберите период для формирования отчёта</p>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>
+

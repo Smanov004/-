@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.local
+*.db
+*.sqlite
+*.sqlite3
+dealership.db
+.DS_Store
+npm-debug.log*
