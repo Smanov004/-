@@ -60,6 +60,29 @@
                     </small>
                 </div>
             </div>
+
+            <div class="card" style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 1.5rem; margin-top: 1rem;">
+                <div class="form-group">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="is_trade_in" name="is_trade_in">
+                        <span class="checkbox-label" style="font-weight: 600; color: #1e293b;">Использовать систему Trade-in</span>
+                    </label>
+                </div>
+
+                <div id="trade_in_fields" style="display: none; margin-top: 1rem;">
+                    <div class="form-group">
+                        <label for="trade_in_car_info">Информация о принимаемом авто (Марка, модель, год, VIN) *</label>
+                        <input type="text" id="trade_in_car_info" name="trade_in_car_info" placeholder="Например: KIA Rio 2018, VIN: XWE...">
+                    </div>
+                    <div class="form-group">
+                        <label for="trade_in_discount">Оценочная стоимость (скидка) (₽) *</label>
+                        <input type="number" id="trade_in_discount" name="trade_in_discount" min="0" step="1000" value="0">
+                    </div>
+                    <div style="background: #eff6ff; padding: 1rem; border-radius: 0.5rem; color: #1e40af; font-size: 0.9rem;">
+                        <strong>Итого к оплате клиентом:</strong> <span id="final_price_display">0</span> ₽
+                    </div>
+                </div>
+            </div>
             
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Оформить продажу</button>
@@ -70,11 +93,36 @@
 </div>
 
 <script>
-    document.getElementById('car_id').addEventListener('change', function() {
+    const carSelect = document.getElementById('car_id');
+    const priceInput = document.getElementById('price');
+    const tradeInCheckbox = document.getElementById('is_trade_in');
+    const tradeInFields = document.getElementById('trade_in_fields');
+    const tradeInDiscountInput = document.getElementById('trade_in_discount');
+    const tradeInCarInfoInput = document.getElementById('trade_in_car_info');
+    const finalPriceDisplay = document.getElementById('final_price_display');
+
+    function updateFinalPrice() {
+        const basePrice = parseFloat(priceInput.value) || 0;
+        const discount = tradeInCheckbox.checked ? (parseFloat(tradeInDiscountInput.value) || 0) : 0;
+        finalPriceDisplay.innerText = (basePrice - discount).toLocaleString('ru-RU');
+    }
+
+    carSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
         if (selectedOption.value && selectedOption.dataset.price) {
-            document.getElementById('price').value = selectedOption.dataset.price;
+            priceInput.value = selectedOption.dataset.price;
+            updateFinalPrice();
         }
+    });
+
+    priceInput.addEventListener('input', updateFinalPrice);
+    tradeInDiscountInput.addEventListener('input', updateFinalPrice);
+
+    tradeInCheckbox.addEventListener('change', function() {
+        tradeInFields.style.display = this.checked ? 'block' : 'none';
+        tradeInCarInfoInput.required = this.checked;
+        tradeInDiscountInput.required = this.checked;
+        updateFinalPrice();
     });
 </script>
 

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Договор купли-продажи №<%= sale.id %></title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            background-color: #fff;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+        .contract-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+        h2 {
+            font-size: 18px;
+            margin-top: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .signature-block {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+        }
+        .signature {
+            width: 45%;
+            border-top: 1px solid #000;
+            padding-top: 10px;
+            text-align: center;
+        }
+        .no-print {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+        .qr-code {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .qr-code img {
+            width: 120px;
+            height: 120px;
+        }
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 80px;
+            color: rgba(0, 0, 0, 0.05);
+            z-index: -1;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="watermark">ЭЛЕКТРОННЫЙ ДОКУМЕНТ</div>
+    
+    <div class="no-print">
+        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px;">Печать / Сохранить в PDF</button>
+        <button onclick="window.history.back()" style="padding: 10px 20px; cursor: pointer; background: #6c757d; color: white; border: none; border-radius: 5px;">Назад</button>
+    </div>
+
+    <div class="header">
+        <h1>ДОГОВОР КУПЛИ-ПРОДАЖИ АВТОМОБИЛЯ №<%= sale.id %></h1>
+    </div>
+
+    <div class="contract-meta">
+        <div>г. Москва</div>
+        <div><%= new Date(sale.sale_date).toLocaleDateString('ru-RU') %> г.</div>
+    </div>
+
+    <div class="section">
+        <p><strong>Продавец:</strong> Автосалон "AutoDealer Pro", в лице менеджера <%= sale.manager_name %>, действующего на основании Устава, с одной стороны, и</p>
+        <p><strong>Покупатель:</strong> <%= sale.client_name %>, <%= sale.client_address || 'адрес не указан' %>, тел: <%= sale.client_phone %>, с другой стороны, заключили настоящий договор о нижеследующем:</p>
+    </div>
+
+    <div class="section">
+        <h2>1. ПРЕДМЕТ ДОГОВОРА</h2>
+        <p>1.1. Продавец продает, а Покупатель покупает автомобиль:</p>
+        <ul>
+            <li><strong>Марка, модель:</strong> <%= sale.brand %> <%= sale.model %></li>
+            <li><strong>Год выпуска:</strong> <%= sale.year %></li>
+            <li><strong>Цвет:</strong> <%= sale.color %></li>
+            <li><strong>Пробег:</strong> <%= sale.mileage.toLocaleString('ru-RU') %> км</li>
+            <li><strong>VIN:</strong> [СКРЫТО В ДЕМО-ВЕРСИИ]</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>2. ЦЕНА И ПОРЯДОК РАСЧЕТОВ</h2>
+        <p>2.1. Полная стоимость автомобиля составляет <strong><%= parseFloat(sale.price).toLocaleString('ru-RU') %> рублей 00 копеек</strong>.</p>
+        <% if (sale.is_trade_in) { %>
+            <p>2.2. Расчет производится по системе Trade-in. В зачет стоимости принимается автомобиль Покупателя: <strong><%= sale.trade_in_car_info %></strong>.</p>
+            <p>2.3. Оценочная стоимость принимаемого автомобиля составляет <strong><%= parseFloat(sale.trade_in_discount).toLocaleString('ru-RU') %> рублей 00 копеек</strong>.</p>
+            <p>2.4. Сумма к доплате Покупателем с учетом зачета составляет <strong><%= parseFloat(sale.price - sale.trade_in_discount).toLocaleString('ru-RU') %> рублей 00 копеек</strong>.</p>
+        <% } else { %>
+            <p>2.2. Покупатель обязуется оплатить указанную сумму в полном объеме в момент подписания договора.</p>
+        <% } %>
+    </div>
+
+    <div class="section">
+        <h2>3. ПРОЧИЕ УСЛОВИЯ</h2>
+        <p>3.1. Продавец гарантирует, что автомобиль не заложен, не находится под арестом и не является предметом споров.</p>
+        <p>3.2. Настоящий договор составлен в электронном виде и имеет полную юридическую силу.</p>
+    </div>
+
+    <div class="qr-code">
+        <p style="font-size: 12px; color: #666;">Проверка подлинности договора:</p>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=<%= encodeURIComponent(verifyUrl) %>" alt="QR-код">
+        <p style="font-size: 10px; color: #999;">Сгенерировано системой AutoDealer Pro</p>
+    </div>
+
+    <div class="signature-block">
+        <div class="signature">
+            <p><strong>ПРОДАВЕЦ</strong></p>
+            <p style="margin-top: 30px;"><%= sale.manager_name %></p>
+            <p style="font-size: 10px; color: #888;">(Электронная подпись)</p>
+        </div>
+        <div class="signature">
+            <p><strong>ПОКУПАТЕЛЬ</strong></p>
+            <p style="margin-top: 30px;"><%= sale.client_name %></p>
+            <p style="font-size: 10px; color: #888;">(Подпись)</p>
+        </div>
+    </div>
+
+</body>
+</html>

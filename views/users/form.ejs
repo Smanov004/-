@@ -1,0 +1,49 @@
+<%- include('../partials/header', { title: editUser ? 'Редактировать пользователя' : 'Добавить пользователя', currentPage: 'users', user: typeof user !== 'undefined' ? user : null }) %>
+
+<div class="container">
+    <div class="form-container">
+        <h2 style="margin-bottom: 1.5rem;"><%= editUser ? 'Редактировать пользователя' : 'Добавить нового пользователя' %></h2>
+        
+        <form method="POST" action="<%= editUser ? '/users/' + editUser.id + '/update' : '/users' %>" class="form">
+            <div class="form-group">
+                <label for="username">Логин *</label>
+                <input type="text" id="username" name="username" value="<%= editUser ? editUser.username : '' %>" required <%= editUser ? 'readonly' : '' %>>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Пароль *</label>
+                <input type="password" id="password" name="password" required <%= editUser ? 'placeholder="Оставьте пустым, чтобы не менять"' : '' %>>
+            </div>
+            
+            <div class="form-group">
+                <label for="full_name">ФИО *</label>
+                <input type="text" id="full_name" name="full_name" value="<%= editUser ? editUser.full_name : '' %>" required>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="role">Роль *</label>
+                    <select id="role" name="role" required>
+                        <option value="manager" <%= editUser && editUser.role === 'manager' ? 'selected' : '' %>>Менеджер</option>
+                        <option value="supervisor" <%= editUser && editUser.role === 'supervisor' ? 'selected' : '' %>>Руководитель</option>
+                        <option value="admin" <%= editUser && editUser.role === 'admin' ? 'selected' : '' %>>Администратор</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" value="<%= editUser ? editUser.email : '' %>">
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <%= editUser ? 'Сохранить изменения' : 'Добавить' %>
+                </button>
+                <a href="/users" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

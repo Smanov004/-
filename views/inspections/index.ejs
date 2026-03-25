@@ -1,0 +1,56 @@
+<%- include('../partials/header', { title: 'Акты осмотра', currentPage: 'inspections', user: typeof user !== 'undefined' ? user : null }) %>
+
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h2>Реестр актов осмотра при приеме</h2>
+            <a href="/inspections/new" class="btn btn-primary">Создать новый акт</a>
+        </div>
+        
+        <% if (inspections && inspections.length > 0) { %>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Автомобиль</th>
+                            <th>Инспектор</th>
+                            <th>Дата осмотра</th>
+                            <th>Состояние кузова</th>
+                            <th>Повреждения</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% inspections.forEach(i => { %>
+                            <tr>
+                                <td><%= i.id %></td>
+                                <td><strong><%= i.car_name %> (<%= i.car_year %>)</strong></td>
+                                <td><%= i.inspector_name %></td>
+                                <td><%= new Date(i.inspection_date).toLocaleDateString('ru-RU') %></td>
+                                <td><%= i.body_condition %></td>
+                                <td>
+                                    <% if (i.is_damaged) { %>
+                                        <span class="badge badge-danger">Есть повреждения</span>
+                                    <% } else { %>
+                                        <span class="badge badge-success">Цел</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <a href="/inspections/<%= i.id %>" class="btn btn-sm btn-secondary">Подробнее</a>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } else { %>
+            <div class="empty-state">
+                <p>Акты осмотра не найдены</p>
+                <a href="/inspections/new" class="btn btn-primary">Создать первый акт</a>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

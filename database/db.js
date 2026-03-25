@@ -118,16 +118,56 @@ function createTables() {
                 FOREIGN KEY (sale_id) REFERENCES sales(id),
                 FOREIGN KEY (car_id) REFERENCES cars(id),
                 FOREIGN KEY (client_id) REFERENCES clients(id)
+            )`);
+
+            // Таблица актов осмотра при приеме авто
+            db.run(`CREATE TABLE IF NOT EXISTS car_inspections (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                car_id INTEGER NOT NULL,
+                inspector_id INTEGER,
+                inspection_date DATE NOT NULL,
+                body_condition TEXT,
+                interior_condition TEXT,
+                engine_condition TEXT,
+                suspension_condition TEXT,
+                is_damaged BOOLEAN DEFAULT 0,
+                damage_details TEXT,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (car_id) REFERENCES cars(id),
+                FOREIGN KEY (inspector_id) REFERENCES users(id)
+            )`);
+
+            // Добавляем себестоимость в таблицу машин
+            db.run(`ALTER TABLE cars ADD COLUMN purchase_price REAL DEFAULT 0`, (err) => {});
+
+            // Таблица Тест-драйвов
+            db.run(`CREATE TABLE IF NOT EXISTS test_drives (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                car_id INTEGER NOT NULL,
+                client_id INTEGER NOT NULL,
+                manager_id INTEGER,
+                scheduled_at DATETIME NOT NULL,
+                status TEXT DEFAULT 'scheduled',
+                feedback TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (car_id) REFERENCES cars(id),
+                FOREIGN KEY (client_id) REFERENCES clients(id),
+                FOREIGN KEY (manager_id) REFERENCES users(id)
             )`, (err) => {
                 if (err) {
-                    console.error('Ошибка создания таблицы warranty_services:', err);
+                    console.error('Ошибка создания таблицы test_drives:', err);
                     reject(err);
                     return;
                 }
                 console.log('Таблицы базы данных созданы');
-                // Добавляем  данные 
                 insertInitialData().then(resolve).catch(reject);
             });
+            
+            // Добавляем колонки для Trade-in в таблицу продаж
+            db.run(`ALTER TABLE sales ADD COLUMN is_trade_in BOOLEAN DEFAULT 0`, (err) => {});
+            db.run(`ALTER TABLE sales ADD COLUMN trade_in_car_info TEXT`, (err) => {});
+            db.run(`ALTER TABLE sales ADD COLUMN trade_in_discount REAL DEFAULT 0`, (err) => {});
         });
     });
 }
@@ -150,20 +190,47 @@ function insertInitialData() {
                 return;
             }
             if (row.count === 0) {
-                db.run(`INSERT INTO cars (brand, model, year, price, color, mileage, status) VALUES
-                    ('Toyota', 'Camry', 2023, 2500000, 'Белый', 0, 'available'),
-                    ('BMW', 'X5', 2022, 5500000, 'Черный', 15000, 'available'),
-                    ('Mercedes-Benz', 'C-Class', 2023, 4200000, 'Серебристый', 0, 'available'),
-                    ('Audi', 'A4', 2022, 3800000, 'Синий', 20000, 'available')`, (err) => {
-                    if (err) {
-                        console.error('Ошибка вставки тестовых данных:', err);
-                    } else {
-                        console.log(' Тестовые данные добавлены');
-                    }
+                db.serialize(() => {
+                    db.run(`INSERT INTO cars (brand, model, year, price, color, mileage, status) VALUES
+                        ('Lada', 'Vesta', 2023, 1450000, 'Белый', 0, 'available'),
+                        ('Lada', 'Granta', 2022, 900000, 'Черный', 15000, 'available'),
+                        ('Haval', 'Jolion', 2023, 2200000, 'Серебристый', 0, 'available'),
+                        ('Geely', 'Coolray', 2023, 2400000, 'Синий', 0, 'sold'),
+                        ('Chery', 'Tiggo 7 Pro', 2023, 2600000, 'Красный', 0, 'sold'),
+                        ('Toyota', 'Camry', 2023, 4500000, 'Белый', 0, 'available'),
+                        ('BMW', 'X5', 2021, 8500000, 'Черный', 45000, 'available')`);
+                    
+                    // Добавим клиентов
+                    db.run(`INSERT INTO clients (name, phone, email, address) VALUES
+                        ('Александр Иванов', '+7 900 123 45 67', 'ivanov@mail.ru', 'Москва, ул. Пушкина, 10'),
+                        ('Елена Петрова', '+7 911 222 33 44', 'elena@ya.ru', 'Санкт-Петербург, пр. Ленина, 25')`);
+                    
+                    // Инициализация тестовых данных при первом запуске
+                    db.run(`INSERT INTO sales (car_id, client_id, manager_id, sale_date, price) VALUES
+                        (4, 1, 2, date('now', '-2 month'), 2400000),
+                        (5, 2, 2, date('now', '-1 month'), 2600000),
+                        (5, 1, 2, date('now'), 2550000)`);
+ 
+                    // Добавим акты осмотра
+                    db.run(`INSERT INTO car_inspections (car_id, inspector_id, inspection_date, body_condition, interior_condition, engine_condition, suspension_condition, is_damaged) VALUES
+                        (1, 1, date('now', '-5 day'), 'Отличное', 'Отличное', 'Исправен', 'Исправна', 0),
+                        (2, 1, date('now', '-3 day'), 'Хорошее', 'Хорошее', 'Исправен', 'Есть замечания', 0),
+                        (6, 1, date('now', '-1 day'), 'Отличное', 'Отличное', 'Исправен', 'Исправна', 0)`);
+
+                    console.log('Инициализация базы данных завершена: тестовые данные добавлены');
                     resolve();
                 });
             } else {
-                resolve();
+                // Если машины есть, но продаж нет - добавим продажи для графиков
+                db.get("SELECT COUNT(*) as count FROM sales", (err, row) => {
+                    if (row && row.count === 0) {
+                        db.run(`INSERT INTO sales (car_id, client_id, manager_id, sale_date, price) VALUES
+                            (1, 1, 2, date('now', '-2 month'), 1450000),
+                            (2, 2, 2, date('now', '-1 month'), 900000),
+                            (3, 1, 2, date('now'), 2200000)`);
+                    }
+                    resolve();
+                });
             }
         });
     });
@@ -188,11 +255,11 @@ function getCarById(id) {
     });
 }
 
-function addCar(brand, model, year, price, color, mileage, status) {
+function addCar(brand, model, year, price, color, mileage, status, purchase_price = 0) {
     return new Promise((resolve, reject) => {
-        db.run(`INSERT INTO cars (brand, model, year, price, color, mileage, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [brand, model, year, price, color, mileage || 0, status || 'available'],
+        db.run(`INSERT INTO cars (brand, model, year, price, color, mileage, status, purchase_price) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [brand, model, year, price, color, mileage || 0, status || 'available', purchase_price],
             function(err) {
                 if (err) reject(err);
                 else resolve(this.lastID);
@@ -200,11 +267,11 @@ function addCar(brand, model, year, price, color, mileage, status) {
     });
 }
 
-function updateCar(id, brand, model, year, price, color, mileage, status) {
+function updateCar(id, brand, model, year, price, color, mileage, status, purchase_price = 0) {
     return new Promise((resolve, reject) => {
         db.run(`UPDATE cars SET brand = ?, model = ?, year = ?, price = ?, 
-                color = ?, mileage = ?, status = ? WHERE id = ?`,
-            [brand, model, year, price, color, mileage, status, id],
+                color = ?, mileage = ?, status = ?, purchase_price = ? WHERE id = ?`,
+            [brand, model, year, price, color, mileage, status, purchase_price, id],
             function(err) {
                 if (err) reject(err);
                 else resolve(this.changes);
@@ -274,10 +341,28 @@ function deleteClient(id) {
 }
 
 // ========== ПРОДАЖИ ==========
+function getSaleById(id) {
+    return new Promise((resolve, reject) => {
+        db.get(`SELECT s.*, 
+                       c.brand || ' ' || c.model as car_name,
+                       c.brand, c.model, c.year, c.color as car_color, c.mileage,
+                       cl.name as client_name, cl.phone as client_phone, cl.address as client_address, cl.email as client_email,
+                       u.full_name as manager_name
+                FROM sales s
+                LEFT JOIN cars c ON s.car_id = c.id
+                LEFT JOIN clients cl ON s.client_id = cl.id
+                LEFT JOIN users u ON s.manager_id = u.id
+                WHERE s.id = ?`, [id], (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+        });
+    });
+}
+
 function getAllSales() {
     return new Promise((resolve, reject) => {
         db.all(`SELECT s.*, 
-                       c.brand || ' ' || c.model as car_name, c.color as car_color,
+                       c.brand || ' ' || c.model as car_name, c.year, c.color as car_color, c.mileage,
                        cl.name as client_name, cl.phone as client_phone,
                        u.full_name as manager_name
                 FROM sales s
@@ -291,12 +376,12 @@ function getAllSales() {
     });
 }
 
-function addSale(car_id, client_id, manager_id, sale_date, price) {
+function addSale(car_id, client_id, manager_id, sale_date, price, is_trade_in = 0, trade_in_car_info = null, trade_in_discount = 0) {
     return new Promise((resolve, reject) => {
         // Обновляем статус автомобиля на "sold"
-        db.run(`INSERT INTO sales (car_id, client_id, manager_id, sale_date, price) 
-                VALUES (?, ?, ?, ?, ?)`,
-            [car_id, client_id, manager_id || null, sale_date, price],
+        db.run(`INSERT INTO sales (car_id, client_id, manager_id, sale_date, price, is_trade_in, trade_in_car_info, trade_in_discount) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [car_id, client_id, manager_id || null, sale_date, price, is_trade_in, trade_in_car_info, trade_in_discount],
             function(err) {
                 if (err) {
                     reject(err);
@@ -341,6 +426,28 @@ function deleteSale(id) {
 }
 
 // ========== СТАТИСТИКА ==========
+function getRoleDistribution() {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT role, COUNT(*) as count FROM users GROUP BY role`, [], (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+
+function getBrandDistribution() {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT c.brand, COUNT(s.id) as count 
+                FROM sales s 
+                JOIN cars c ON s.car_id = c.id 
+                GROUP BY c.brand 
+                ORDER BY count DESC`, [], (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+
 function getDashboardStats() {
     return new Promise((resolve, reject) => {
         const stats = {};
@@ -510,6 +617,15 @@ function getAllUsers() {
     });
 }
 
+function deleteUser(id) {
+    return new Promise((resolve, reject) => {
+        db.run("DELETE FROM users WHERE id = ?", [id], function(err) {
+            if (err) reject(err);
+            else resolve(this.changes);
+        });
+    });
+}
+
 // ========== ГАРАНТИЙНОЕ ОБСЛУЖИВАНИЕ ==========
 function getAllWarrantyServices() {
     return new Promise((resolve, reject) => {
@@ -612,6 +728,7 @@ function getReports(startDate, endDate) {
         let query = `SELECT 
                         s.*,
                         c.brand || ' ' || c.model as car_name,
+                        c.purchase_price,
                         cl.name as client_name,
                         cl.phone as client_phone,
                         u.full_name as manager_name
@@ -636,8 +753,15 @@ function getReports(startDate, endDate) {
         db.all(query, params, (err, rows) => {
             if (err) reject(err);
             else {
-                const total = rows.reduce((sum, row) => sum + parseFloat(row.price || 0), 0);
-                resolve({ sales: rows || [], total });
+                const totalRevenue = rows.reduce((sum, row) => sum + parseFloat((row.price || 0) - (row.trade_in_discount || 0)), 0);
+                const totalPurchase = rows.reduce((sum, row) => sum + parseFloat(row.purchase_price || 0), 0);
+                const totalProfit = totalRevenue - totalPurchase;
+                resolve({ 
+                    sales: rows || [], 
+                    total: totalRevenue,
+                    purchase: totalPurchase,
+                    profit: totalProfit
+                });
             }
         });
     });
@@ -776,6 +900,90 @@ function getManagerStats() {
     });
 }
 
+// ========== АКТЫ ОСМОТРА ==========
+function getAllInspections() {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT i.*, 
+                       c.brand || ' ' || c.model as car_name, c.year as car_year,
+                       u.full_name as inspector_name
+                FROM car_inspections i
+                LEFT JOIN cars c ON i.car_id = c.id
+                LEFT JOIN users u ON i.inspector_id = u.id
+                ORDER BY i.inspection_date DESC`, [], (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+
+function getInspectionById(id) {
+    return new Promise((resolve, reject) => {
+        db.get(`SELECT i.*, 
+                       c.brand, c.model, c.year, c.color, c.mileage,
+                       u.full_name as inspector_name
+                FROM car_inspections i
+                LEFT JOIN cars c ON i.car_id = c.id
+                LEFT JOIN users u ON i.inspector_id = u.id
+                WHERE i.id = ?`, [id], (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+        });
+    });
+}
+
+function addInspection(car_id, inspector_id, inspection_date, body_condition, interior_condition, engine_condition, suspension_condition, is_damaged, damage_details, notes) {
+    return new Promise((resolve, reject) => {
+        db.run(`INSERT INTO car_inspections (car_id, inspector_id, inspection_date, body_condition, interior_condition, engine_condition, suspension_condition, is_damaged, damage_details, notes) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [car_id, inspector_id, inspection_date, body_condition, interior_condition, engine_condition, suspension_condition, is_damaged, damage_details, notes],
+            function(err) {
+                if (err) reject(err);
+                else resolve(this.lastID);
+            });
+    });
+}
+
+// ========== ТЕСТ-ДРАЙВЫ ==========
+function getAllTestDrives() {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT td.*, 
+                       c.brand || ' ' || c.model as car_name,
+                       cl.name as client_name,
+                       u.full_name as manager_name
+                FROM test_drives td
+                LEFT JOIN cars c ON td.car_id = c.id
+                LEFT JOIN clients cl ON td.client_id = cl.id
+                LEFT JOIN users u ON td.manager_id = u.id
+                ORDER BY td.scheduled_at DESC`, [], (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+
+function addTestDrive(car_id, client_id, manager_id, scheduled_at, status = 'scheduled') {
+    return new Promise((resolve, reject) => {
+        db.run(`INSERT INTO test_drives (car_id, client_id, manager_id, scheduled_at, status) 
+                VALUES (?, ?, ?, ?, ?)`,
+            [car_id, client_id, manager_id, scheduled_at, status],
+            function(err) {
+                if (err) reject(err);
+                else resolve(this.lastID);
+            });
+    });
+}
+
+function updateTestDriveStatus(id, status, feedback = null) {
+    return new Promise((resolve, reject) => {
+        db.run("UPDATE test_drives SET status = ?, feedback = ? WHERE id = ?",
+            [status, feedback, id],
+            (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+    });
+}
+
 module.exports = {
     init,
     getAllCars,
@@ -789,6 +997,7 @@ module.exports = {
     updateClient,
     deleteClient,
     getAllSales,
+    getSaleById,
     addSale,
     deleteSale,
     getDashboardStats,
@@ -801,10 +1010,19 @@ module.exports = {
     getUserById,
     createUser,
     getAllUsers,
+    deleteUser,
     getSalesAnalytics,
     getProfitAnalytics,
     getReports,
     getTrendPrediction,
-    getManagerStats
+    getManagerStats,
+    getBrandDistribution,
+    getRoleDistribution,
+    getAllInspections,
+    getInspectionById,
+    addInspection,
+    getAllTestDrives,
+    addTestDrive,
+    updateTestDriveStatus
 };
 

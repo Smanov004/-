@@ -1,0 +1,106 @@
+<%- include('../partials/header', { title: 'Новый акт осмотра', currentPage: 'inspections', user: typeof user !== 'undefined' ? user : null }) %>
+
+<div class="container">
+    <div class="form-container">
+        <h2 style="margin-bottom: 1.5rem;">Оформление акта осмотра автомобиля</h2>
+        
+        <form method="POST" action="/inspections" class="form">
+            <div class="form-group">
+                <label for="car_id">Автомобиль для приема *</label>
+                <select id="car_id" name="car_id" required>
+                    <option value="">Выберите автомобиль</option>
+                    <% if (cars && cars.length > 0) { %>
+                        <% cars.forEach(car => { %>
+                            <option value="<%= car.id %>">
+                                <%= car.brand %> <%= car.model %> (<%= car.year %>) - <%= car.color %>
+                            </option>
+                        <% }); %>
+                    <% } %>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="inspection_date">Дата осмотра *</label>
+                    <input type="date" id="inspection_date" name="inspection_date" value="<%= new Date().toISOString().split('T')[0] %>" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="inspector">Инспектор</label>
+                    <input type="text" id="inspector" value="<%= user.fullName %>" readonly>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="body_condition">Состояние кузова *</label>
+                    <select id="body_condition" name="body_condition" required>
+                        <option value="Отличное">Отличное</option>
+                        <option value="Хорошее">Хорошее</option>
+                        <option value="Удовлетворительное">Удовлетворительное</option>
+                        <option value="Требует ремонта">Требует ремонта</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="interior_condition">Состояние салона *</label>
+                    <select id="interior_condition" name="interior_condition" required>
+                        <option value="Отличное">Отличное</option>
+                        <option value="Хорошее">Хорошее</option>
+                        <option value="Удовлетворительное">Удовлетворительное</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="engine_condition">Двигатель *</label>
+                    <select id="engine_condition" name="engine_condition" required>
+                        <option value="Исправен">Исправен</option>
+                        <option value="Есть замечания">Есть замечания</option>
+                        <option value="Неисправен">Неисправен</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="suspension_condition">Подвеска *</label>
+                    <select id="suspension_condition" name="suspension_condition" required>
+                        <option value="Исправна">Исправна</option>
+                        <option value="Есть замечания">Есть замечания</option>
+                        <option value="Неисправна">Неисправна</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="is_damaged" name="is_damaged">
+                    <span class="checkbox-label">Обнаружены повреждения при транспортировке</span>
+                </label>
+            </div>
+
+            <div id="damage_details_group" class="form-group" style="display: none;">
+                <label for="damage_details">Детали повреждений</label>
+                <textarea id="damage_details" name="damage_details" rows="3" placeholder="Опишите сколы, царапины, вмятины..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">Общие примечания</label>
+                <textarea id="notes" name="notes" rows="3"></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Сохранить акт</button>
+                <a href="/inspections" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('is_damaged').addEventListener('change', function() {
+        document.getElementById('damage_details_group').style.display = this.checked ? 'block' : 'none';
+    });
+</script>
+
+<%- include('../partials/footer') %>

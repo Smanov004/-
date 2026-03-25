@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка подлинности договора</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .verify-container {
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        .status-box {
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        .status-success {
+            background-color: #d1fae5;
+            border: 2px solid #10b981;
+            color: #065f46;
+        }
+        .status-error {
+            background-color: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            text-align: left;
+        }
+        .info-table th, .info-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-table th {
+            color: #6b7280;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body style="background: #f3f4f6;">
+    <div class="verify-container">
+        <div class="card">
+            <% if (sale) { %>
+                <div class="status-box status-success">
+                    <h1 style="margin: 0;">ДОГОВОР ПОДЛИННЫЙ</h1>
+                    <p>Настоящим подтверждается, что данный электронный документ был официально зарегистрирован в системе AutoDealer Pro.</p>
+                </div>
+
+                <table class="info-table">
+                    <tr>
+                        <th>№ Договора</th>
+                        <td><strong><%= sale.id %></strong></td>
+                    </tr>
+                    <tr>
+                        <th>Дата заключения</th>
+                        <td><%= new Date(sale.sale_date).toLocaleDateString('ru-RU') %></td>
+                    </tr>
+                    <tr>
+                        <th>Автомобиль</th>
+                        <td><%= sale.brand %> <%= sale.model %> (<%= sale.year %>)</td>
+                    </tr>
+                    <tr>
+                        <th>Покупатель</th>
+                        <td><%= sale.client_name %></td>
+                    </tr>
+                    <tr>
+                        <th>Продавец</th>
+                        <td>Автосалон AutoDealer Pro</td>
+                    </tr>
+                </table>
+                
+                <div style="margin-top: 30px; font-size: 12px; color: #6b7280;">
+                    Данная страница является официальным подтверждением факта сделки купли-продажи транспортного средства.
+                </div>
+            <% } else { %>
+                <div class="status-box status-error">
+                    <h1 style="margin: 0;">ДОГОВОР НЕ НАЙДЕН</h1>
+                    <p>Внимание! Указанный номер договора не зарегистрирован в системе или был аннулирован.</p>
+                </div>
+                <a href="/" class="btn btn-primary">Вернуться на главную</a>
+            <% } %>
+        </div>
+        <div style="margin-top: 20px;">
+            <p style="color: #9ca3af; font-size: 14px;">&copy; 2025 AutoDealer Pro. Система автоматизации автосалона.</p>
+        </div>
+    </div>
+</body>
+</html>

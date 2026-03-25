@@ -19,17 +19,55 @@
             <div class="form-group" style="display: flex; align-items: flex-end;">
                 <button type="submit" class="btn btn-primary">Применить фильтр</button>
                 <a href="/reports" class="btn btn-secondary" style="margin-left: 0.5rem;">Сбросить</a>
+                <button type="button" onclick="exportToCSV()" class="btn btn-info" style="margin-left: 0.5rem;">Экспорт CSV</button>
             </div>
         </form>
         
+        <script>
+            function exportToCSV() {
+                const rows = [];
+                const table = document.querySelector(".data-table");
+                if (!table) return alert("Нет данных для экспорта");
+                
+                const trs = table.querySelectorAll("tr");
+                trs.forEach(tr => {
+                    const cells = tr.querySelectorAll("th, td");
+                    const row = Array.from(cells).map(cell => `"${cell.innerText.replace(/"/g, '""')}"`);
+                    rows.push(row.join(","));
+                });
+                
+                const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + rows.join("\n");
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `report_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        </script>
+        
         <% if (reports && reports.sales) { %>
-            <div style="margin-bottom: 1.5rem;">
-                <div class="kpi-card" style="max-width: 400px;">
-                    <div class="kpi-icon green">💰</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="kpi-card">
                     <div class="kpi-content">
-                        <div class="kpi-label">Общая сумма продаж</div>
+                        <div class="kpi-label">Общая выручка</div>
                         <div class="kpi-value"><%= reports.total.toLocaleString('ru-RU') %> ₽</div>
-                        <div class="kpi-label">Количество продаж: <%= reports.sales.length %></div>
+                        <div class="kpi-label">Количество сделок: <%= reports.sales.length %></div>
+                    </div>
+                </div>
+
+                <div class="kpi-card" style="border-left-color: #059669;">
+                    <div class="kpi-content">
+                        <div class="kpi-label">Чистая прибыль</div>
+                        <div class="kpi-value" style="color: #059669;"><%= reports.profit.toLocaleString('ru-RU') %> ₽</div>
+                        <div class="kpi-label">Маржинальность: <%= reports.total > 0 ? Math.round(reports.profit / reports.total * 100) : 0 %>%</div>
+                    </div>
+                </div>
+
+                <div class="chart-card" style="margin-bottom: 0; grid-column: span 2;">
+                    <div style="height: 150px;">
+                        <canvas id="reportChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -81,6 +119,46 @@
         <% } %>
     </div>
 </div>
+
+<script>
+     const salesData = <%- JSON.stringify(reports ? reports.sales : []) %>;
+     
+     if (salesData.length > 0) {
+        const ctx = document.getElementById('reportChart').getContext('2d');
+        
+        // Группируем по датам
+        const datesMap = {};
+        salesData.forEach(sale => {
+            const date = new Date(sale.sale_date).toLocaleDateString('ru-RU');
+            datesMap[date] = (datesMap[date] || 0) + parseFloat(sale.price);
+        });
+        
+        const labels = Object.keys(datesMap).reverse();
+        const values = Object.values(datesMap).reverse();
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Выручка по дням (₽)',
+                    data: values,
+                    backgroundColor: '#10b981',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+</script>
 
 <%- include('../partials/footer') %>
 

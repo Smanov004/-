@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    console.log('🚗 Система автосалона загружена');
+    console.log('Система управления автосалоном загружена');
 
     // Уведомления (простой фронтовый список)
     const notificationToggle = document.getElementById('notificationToggle');

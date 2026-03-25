@@ -1,0 +1,90 @@
+<%- include('../partials/header', { title: 'Тест-драйвы', currentPage: 'test-drives', user: typeof user !== 'undefined' ? user : null }) %>
+
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h2>График тест-драйвов</h2>
+            <a href="/test-drives/new" class="btn btn-primary">Запланировать тест-драйв</a>
+        </div>
+        
+        <% if (testDrives && testDrives.length > 0) { %>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Автомобиль</th>
+                            <th>Клиент</th>
+                            <th>Менеджер</th>
+                            <th>Дата и время</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% testDrives.forEach(td => { %>
+                            <tr>
+                                <td><%= td.id %></td>
+                                <td><strong><%= td.car_name %></strong></td>
+                                <td><%= td.client_name %></td>
+                                <td><%= td.manager_name %></td>
+                                <td><%= new Date(td.scheduled_at).toLocaleString('ru-RU') %></td>
+                                <td>
+                                    <span class="badge badge-<%= td.status === 'completed' ? 'success' : td.status === 'cancelled' ? 'danger' : 'info' %>">
+                                        <%= td.status === 'completed' ? 'Завершен' : td.status === 'cancelled' ? 'Отменен' : 'Запланирован' %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <% if (td.status === 'scheduled') { %>
+                                        <button onclick="openStatusModal(<%= td.id %>)" class="btn btn-sm btn-secondary">Изменить статус</button>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } else { %>
+            <div class="empty-state">
+                <p>Тест-драйвы не запланированы</p>
+                <a href="/test-drives/new" class="btn btn-primary">Создать первую запись</a>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<!-- Модальное окно статуса -->
+<div id="statusModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
+    <div class="card" style="max-width:500px; margin:100px auto; padding:2rem;">
+        <h3>Завершение тест-драйва</h3>
+        <form id="statusForm" method="POST">
+            <div class="form-group">
+                <label for="status">Статус</label>
+                <select name="status" id="statusSelect" required>
+                    <option value="completed">Завершен</option>
+                    <option value="cancelled">Отменен</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="feedback">Обратная связь от клиента</label>
+                <textarea name="feedback" rows="3" placeholder="Понравилось ли авто? Готов ли к покупке?"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <button type="button" onclick="closeStatusModal()" class="btn btn-secondary">Закрыть</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openStatusModal(id) {
+        document.getElementById('statusForm').action = '/test-drives/' + id + '/status';
+        document.getElementById('statusModal').style.display = 'block';
+    }
+    function closeStatusModal() {
+        document.getElementById('statusModal').style.display = 'none';
+    }
+</script>
+
+<%- include('../partials/footer') %>

@@ -4,7 +4,6 @@
     <!-- KPI Cards -->
     <div class="kpi-grid">
         <div class="kpi-card">
-            <div class="kpi-icon blue">■</div>
             <div class="kpi-content">
                 <div class="kpi-label">Автомобили на складе</div>
                 <div class="kpi-value"><%= stats ? (stats.availableCars || 0) : 0 %></div>
@@ -15,42 +14,39 @@
         </div>
         
         <div class="kpi-card">
-            <div class="kpi-icon green">▲</div>
             <div class="kpi-content">
                 <div class="kpi-label">Продажи за месяц</div>
                 <div class="kpi-value"><%= stats ? (stats.monthlySales || 0) : 0 %></div>
                 <% 
                     const msChange = stats ? stats.monthlySalesChange : null;
                     const msClass = msChange > 0 ? 'up' : (msChange < 0 ? 'down' : '');
-                    const msText = msChange === null ? '—' : (msChange > 0 ? `↑ +${msChange}%` : msChange < 0 ? `↓ ${Math.abs(msChange)}%` : '0%');
+                    const msText = msChange === null ? '—' : (msChange > 0 ? `+${msChange}%` : msChange < 0 ? `${msChange}%` : '0%');
                 %>
                 <div class="kpi-change <%= msClass %>"><%= msText %> к прошлому месяцу</div>
             </div>
         </div>
         
         <div class="kpi-card">
-            <div class="kpi-icon orange">●</div>
             <div class="kpi-content">
                 <div class="kpi-label">Активные сделки</div>
                 <div class="kpi-value"><%= stats ? (stats.weeklySales || 0) : 0 %></div>
                 <% 
                     const wdChange = stats ? stats.weeklySalesChange : null;
                     const wdClass = wdChange > 0 ? 'up' : (wdChange < 0 ? 'down' : '');
-                    const wdText = wdChange === null ? '—' : (wdChange > 0 ? `↑ +${wdChange}%` : wdChange < 0 ? `↓ ${Math.abs(wdChange)}%` : '0%');
+                    const wdText = wdChange === null ? '—' : (wdChange > 0 ? `+${wdChange}%` : wdChange < 0 ? `${wdChange}%` : '0%');
                 %>
                 <div class="kpi-change <%= wdClass %>"><%= wdText %> к прошлой неделе</div>
             </div>
         </div>
         
         <div class="kpi-card">
-            <div class="kpi-icon purple">◆</div>
             <div class="kpi-content">
                 <div class="kpi-label">Количество клиентов</div>
                 <div class="kpi-value"><%= stats ? (stats.totalClients || 0).toLocaleString('ru-RU') : 0 %></div>
                 <% 
                     const ncChange = stats ? stats.weeklyNewClientsChange : null;
                     const ncClass = ncChange > 0 ? 'up' : (ncChange < 0 ? 'down' : '');
-                    const ncText = ncChange === null ? '—' : (ncChange > 0 ? `↑ +${ncChange}%` : ncChange < 0 ? `↓ ${Math.abs(ncChange)}%` : '0%');
+                    const ncText = ncChange === null ? '—' : (ncChange > 0 ? `+${ncChange}%` : ncChange < 0 ? `${ncChange}%` : '0%');
                 %>
                 <div class="kpi-change <%= ncClass %>">
                     Новых за неделю: <%= stats ? (stats.weeklyNewClients || 0) : 0 %> (<%= ncText %>)
@@ -62,16 +58,30 @@
     <!-- Charts -->
     <div class="charts-grid">
         <div class="chart-card">
-            <h3 class="chart-title">Динамика продаж</h3>
+            <h3 class="chart-title">Динамика реализации</h3>
             <div class="chart-container">
                 <canvas id="salesChart"></canvas>
             </div>
         </div>
         
         <div class="chart-card">
-            <h3 class="chart-title">Прибыль по месяцам (тыс. ₽)</h3>
+            <h3 class="chart-title">Финансовые показатели (тыс. ₽)</h3>
             <div class="chart-container">
                 <canvas id="profitChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3 class="chart-title">Доля брендов в продажах</h3>
+            <div class="chart-container">
+                <canvas id="brandChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3 class="chart-title">Штатное расписание (по ролям)</h3>
+            <div class="chart-container">
+                <canvas id="roleChart"></canvas>
             </div>
         </div>
     </div>
@@ -80,7 +90,7 @@
     <% if (trendPrediction && trendPrediction.length > 0) { %>
     <div class="card" style="margin-bottom: 2rem;">
         <div class="card-header">
-            <h2>Прогноз трендовых автомобилей на следующий месяц</h2>
+            <h2>Прогноз спроса на следующий период</h2>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
             <% trendPrediction.forEach((car, index) => { %>
@@ -88,26 +98,24 @@
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
                         <h4 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary);"><%= car.car_name %></h4>
                         <% if (index === 0) { %>
-                            <span class="badge badge-success">Топ-1</span>
-                        <% } else if (index === 1) { %>
-                            <span class="badge badge-info">Топ-2</span>
+                            <span class="badge badge-success">Лидер спроса</span>
                         <% } %>
                     </div>
                     <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">
-                        Продаж: <strong style="color: var(--text-primary);"><%= car.sales_count %></strong>
+                        Реализовано: <strong style="color: var(--text-primary);"><%= car.sales_count %> ед.</strong>
                     </div>
                     <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">
                         Выручка: <strong style="color: var(--text-primary);"><%= Math.round(car.total_revenue).toLocaleString('ru-RU') %> ₽</strong>
                     </div>
                     <% if (typeof car.growthRate !== 'undefined' && car.growthRate !== 0) { %>
                     <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">
-                        Рост: <strong style="color: <%= car.growthRate > 0 ? '#059669' : '#ef4444' %>;">
-                            <%= car.growthRate > 0 ? '↑' : '↓' %> <%= Math.abs(car.growthRate).toFixed(1) %>%
+                        Динамика: <strong style="color: <%= car.growthRate > 0 ? '#059669' : '#ef4444' %>;">
+                            <%= car.growthRate > 0 ? '+' : '' %><%= car.growthRate.toFixed(1) %>%
                         </strong>
                     </div>
                     <% } %>
                     <div style="color: var(--text-secondary); font-size: 0.875rem;">
-                        Прогноз: <strong style="color: <%= car.prediction === 'Высокий' ? '#059669' : car.prediction === 'Средний' ? '#f59e0b' : '#6b7280' %>;"><%= car.prediction %></strong>
+                        Потенциал: <strong style="color: <%= car.prediction === 'Высокий' ? '#059669' : car.prediction === 'Средний' ? '#f59e0b' : '#6b7280' %>;"><%= car.prediction %></strong>
                     </div>
                 </div>
             <% }); %>
@@ -158,8 +166,10 @@
 
 <script>
     // Данные для графиков
-    const salesData = <%= JSON.stringify(salesData || []) %>;
-    const profitData = <%= JSON.stringify(profitData || []) %>;
+    const salesData = <%- JSON.stringify(salesData || []) %>;
+    const profitData = <%- JSON.stringify(profitData || []) %>;
+    const brandData = <%- JSON.stringify(brandData || []) %>;
+    const roleData = <%- JSON.stringify(roleData || []) %>;
 
     const formatMonthLabel = (month) => {
         if (!month) return '';
@@ -206,7 +216,8 @@
             },
             scales: {
                 y: {
-                    beginAtZero: true
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
                 }
             }
         }
@@ -237,6 +248,64 @@
             scales: {
                 y: {
                     beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // График брендов
+    const brandCtx = document.getElementById('brandChart').getContext('2d');
+    const brandLabels = brandData.map(d => d.brand);
+    const brandValues = brandData.map(d => d.count);
+    
+    new Chart(brandCtx, {
+        type: 'doughnut',
+        data: {
+            labels: brandLabels.length > 0 ? brandLabels : ['Нет данных'],
+            datasets: [{
+                data: brandValues.length > 0 ? brandValues : [1],
+                backgroundColor: [
+                    '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'
+                ],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // График ролей
+    const roleCtx = document.getElementById('roleChart').getContext('2d');
+    const roleLabels = roleData.map(d => {
+        const roles = { 'admin': 'Админ', 'supervisor': 'Руководитель', 'manager': 'Менеджер' };
+        return roles[d.role] || d.role;
+    });
+    const roleValues = roleData.map(d => d.count);
+
+    new Chart(roleCtx, {
+        type: 'pie',
+        data: {
+            labels: roleLabels,
+            datasets: [{
+                data: roleValues,
+                backgroundColor: ['#ef4444', '#3b82f6', '#10b981']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom'
                 }
             }
         }

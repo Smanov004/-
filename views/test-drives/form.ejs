@@ -1,0 +1,56 @@
+<%- include('../partials/header', { title: 'Новый тест-драйв', currentPage: 'test-drives', user: typeof user !== 'undefined' ? user : null }) %>
+
+<div class="container">
+    <div class="form-container">
+        <h2 style="margin-bottom: 1.5rem;">Запись на тест-драйв</h2>
+        
+        <form method="POST" action="/test-drives" class="form">
+            <div class="form-group">
+                <label for="car_id">Автомобиль *</label>
+                <select id="car_id" name="car_id" required>
+                    <option value="">Выберите автомобиль</option>
+                    <% if (cars && cars.length > 0) { %>
+                        <% cars.forEach(car => { %>
+                            <option value="<%= car.id %>">
+                                <%= car.brand %> <%= car.model %> (<%= car.year %>)
+                            </option>
+                        <% }); %>
+                    <% } %>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="client_id">Клиент *</label>
+                <select id="client_id" name="client_id" required>
+                    <option value="">Выберите клиента</option>
+                    <% if (clients && clients.length > 0) { %>
+                        <% clients.forEach(client => { %>
+                            <option value="<%= client.id %>">
+                                <%= client.name %> (<%= client.phone %>)
+                            </option>
+                        <% }); %>
+                    <% } %>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="scheduled_at">Дата и время *</label>
+                    <input type="datetime-local" id="scheduled_at" name="scheduled_at" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="manager">Менеджер</label>
+                    <input type="text" id="manager" value="<%= user.fullName %>" readonly>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Запланировать</button>
+                <a href="/test-drives" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

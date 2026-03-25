@@ -111,7 +111,6 @@ app.post('/login', async (req, res) => {
             role: user.role,
             email: user.email
         };
-        // 303 — браузер всегда делает GET при редиректе (избегаем "Cannot POST /dashboard")
         res.redirect(303, '/dashboard');
     } catch (error) {
         console.error('Ошибка входа:', error);
@@ -124,57 +123,151 @@ app.post('/logout', (req, res) => {
     res.redirect(303, '/login');
 });
 
-// Применяем аутентификацию ко всем маршрутам кроме логина и статических файлов
+// Middleware для проверки авторизации
 app.use((req, res, next) => {
-    // Пропускаем статические файлы, логин и logout
-    if (req.path === '/login' || 
-        req.path === '/logout' ||
-        req.path.startsWith('/css/') || 
-        req.path.startsWith('/js/') ||
-        req.path.includes('.')) {
+    const publicPaths = ['/login', '/logout', '/css', '/js', '/verify'];
+    const isPublic = publicPaths.some(path => req.path.startsWith(path)) || req.path.includes('.');
+    
+    if (isPublic) {
         return next();
     }
-    requireAuth(req, res, next);
+    
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+    
+    next();
 });
 
-// ========== ОСНОВНЫЕ МАРШРУТЫ ==========
-app.get('/', (req, res) => {
-    res.redirect(302, '/dashboard');
-});
-// Запасной обработчик, если POST случайно попал на /dashboard (редко)
-app.post('/dashboard', (req, res) => {
-    res.redirect(303, '/dashboard');
+// ========== МАРШРУТЫ ==========
+app.get('/', (req, res) => res.redirect('/dashboard'));
+
+// ========== АКТЫ ОСМОТРА ==========
+app.get('/inspections', async (req, res) => {
+    try {
+        const inspections = await db.getAllInspections();
+        res.render('inspections/index', { inspections, currentPage: 'inspections', user: req.session.user });
+    } catch (error) {
+        console.error('Ошибка загрузки актов осмотра:', error);
+        res.render('inspections/index', { inspections: [], error: error.message, currentPage: 'inspections', user: req.session.user });
+    }
 });
 
-// Dashboard с аналитикой
+app.get('/inspections/new', async (req, res) => {
+    try {
+        const cars = await db.getAllCars();
+        const availableCars = (cars || []).filter(c => c.status === 'available');
+        res.render('inspections/form', { inspection: null, cars: availableCars, currentPage: 'inspections', user: req.session.user });
+    } catch (error) {
+        console.error('Ошибка загрузки данных для осмотра:', error);
+        res.redirect('/inspections');
+    }
+});
+
+app.post('/inspections', async (req, res) => {
+    try {
+        const { car_id, inspection_date, body_condition, interior_condition, engine_condition, suspension_condition, is_damaged, damage_details, notes } = req.body;
+        const inspector_id = req.session.user ? req.session.user.id : null;
+        await db.addInspection(car_id, inspector_id, inspection_date, body_condition, interior_condition, engine_condition, suspension_condition, is_damaged === 'on' ? 1 : 0, damage_details, notes);
+        res.redirect('/inspections');
+    } catch (error) {
+        console.error('Ошибка добавления акта осмотра:', error);
+        const cars = await db.getAllCars();
+        const availableCars = (cars || []).filter(c => c.status === 'available');
+        res.render('inspections/form', { inspection: null, cars: availableCars, error: error.message, currentPage: 'inspections', user: req.session.user });
+    }
+});
+
+app.get('/inspections/:id', async (req, res) => {
+    try {
+        const inspection = await db.getInspectionById(req.params.id);
+        if (!inspection) return res.status(404).send('Акт не найден');
+        res.render('inspections/detail', { inspection, currentPage: 'inspections', user: req.session.user });
+    } catch (error) {
+        console.error('Ошибка загрузки деталей осмотра:', error);
+        res.redirect('/inspections');
+    }
+});
+
+// ========== ДАШБОРД ==========
 app.get('/dashboard', async (req, res) => {
     try {
-        const stats = await db.getDashboardStats();
-        const salesData = await db.getSalesAnalytics();
-        const profitData = await db.getProfitAnalytics();
-        const trendPrediction = await db.getTrendPrediction();
-        const managerStats = await db.getManagerStats();
+        const [stats, salesData, profitData, trendPrediction, managerStats, brandData, roleData] = await Promise.all([
+            db.getDashboardStats(),
+            db.getSalesAnalytics(),
+            db.getProfitAnalytics(),
+            db.getTrendPrediction(),
+            db.getManagerStats(),
+            db.getBrandDistribution(),
+            db.getRoleDistribution()
+        ]);
+
         res.render('dashboard', { 
             stats, 
             salesData, 
             profitData,
             trendPrediction,
             managerStats,
+            brandData,
+            roleData,
             currentPage: 'dashboard',
             user: req.session.user 
         });
     } catch (error) {
         console.error('Ошибка загрузки dashboard:', error);
-        res.render('dashboard', { 
+        res.render('dashboard', {
             stats: null, 
             salesData: null,
             profitData: null,
             trendPrediction: null,
             managerStats: null,
+            brandData: null,
+            roleData: null,
             error: error.message,
             currentPage: 'dashboard',
             user: req.session.user 
         });
+    }
+});
+
+// ========== ПОЛЬЗОВАТЕЛИ ==========
+app.get('/users', requireRole('admin'), async (req, res) => {
+    try {
+        const users = await db.getAllUsers();
+        res.render('users/index', { users, currentPage: 'users', user: req.session.user });
+    } catch (error) {
+        console.error('Ошибка загрузки пользователей:', error);
+        res.render('users/index', { users: [], error: error.message, currentPage: 'users', user: req.session.user });
+    }
+});
+
+app.get('/users/new', requireRole('admin'), (req, res) => {
+    res.render('users/form', { editUser: null, currentPage: 'users', user: req.session.user });
+});
+
+app.post('/users', requireRole('admin'), async (req, res) => {
+    try {
+        const { username, password, full_name, role, email } = req.body;
+        const passwordHash = await bcrypt.hash(password, 10);
+        await db.createUser(username, passwordHash, full_name, role, email);
+        res.redirect('/users');
+    } catch (error) {
+        console.error('Ошибка создания пользователя:', error);
+        res.render('users/form', { editUser: null, error: error.message, currentPage: 'users', user: req.session.user });
+    }
+});
+
+app.post('/users/:id/delete', requireRole('admin'), async (req, res) => {
+    try {
+        // Запрещаем удалять самого себя
+        if (req.params.id == req.session.user.id) {
+            return res.status(400).send('Нельзя удалить собственную учетную запись');
+        }
+        await db.deleteUser(req.params.id);
+        res.redirect('/users');
+    } catch (error) {
+        console.error('Ошибка удаления пользователя:', error);
+        res.redirect('/users');
     }
 });
 
@@ -195,8 +288,8 @@ app.get('/cars/new', requireRole('admin', 'supervisor'), (req, res) => {
 
 app.post('/cars', requireRole('admin', 'supervisor'), async (req, res) => {
     try {
-        const { brand, model, year, price, color, mileage, status } = req.body;
-        await db.addCar(brand, model, year, price, color, mileage, status);
+        const { brand, model, year, price, color, mileage, status, purchase_price } = req.body;
+        await db.addCar(brand, model, year, price, color, mileage, status, purchase_price);
         res.redirect('/cars');
     } catch (error) {
         console.error('Ошибка добавления автомобиля:', error);
@@ -216,12 +309,12 @@ app.get('/cars/:id/edit', requireRole('admin', 'supervisor'), async (req, res) =
 
 app.post('/cars/:id/update', requireRole('admin', 'supervisor'), async (req, res) => {
     try {
-        const { brand, model, year, price, color, mileage, status } = req.body;
-        await db.updateCar(req.params.id, brand, model, year, price, color, mileage, status);
+        const { brand, model, year, price, color, mileage, status, purchase_price } = req.body;
+        await db.updateCar(req.params.id, brand, model, year, price, color, mileage, status, purchase_price);
         res.redirect('/cars');
     } catch (error) {
         console.error('Ошибка обновления автомобиля:', error);
-        res.redirect('/cars');
+        res.render('cars/form', { car: { id: req.params.id, ...req.body }, error: error.message, currentPage: 'cars', user: req.session.user });
     }
 });
 
@@ -303,6 +396,35 @@ app.get('/sales', async (req, res) => {
     }
 });
 
+app.get('/sales/:id/contract', async (req, res) => {
+    try {
+        const sale = await db.getSaleById(req.params.id);
+        if (!sale) {
+            return res.status(404).send('Продажа не найдена');
+        }
+        
+        // Формируем URL для проверки (используем host из заголовков)
+        const host = req.get('host');
+        const protocol = req.protocol;
+        const verifyUrl = `${protocol}://${host}/verify/contract/${sale.id}`;
+        
+        res.render('sales/contract', { sale, verifyUrl, user: req.session.user });
+    } catch (error) {
+        console.error('Ошибка загрузки договора:', error);
+        res.status(500).send('Ошибка сервера');
+    }
+});
+
+// Публичный маршрут для проверки договора по QR
+app.get('/verify/contract/:id', async (req, res) => {
+    try {
+        const sale = await db.getSaleById(req.params.id);
+        res.render('verify', { sale });
+    } catch (error) {
+        res.status(404).render('verify', { sale: null });
+    }
+});
+
 app.get('/sales/new', async (req, res) => {
     try {
         const cars = await db.getAllCars();
@@ -316,15 +438,30 @@ app.get('/sales/new', async (req, res) => {
 
 app.post('/sales', async (req, res) => {
     try {
-        const { car_id, client_id, sale_date, price } = req.body;
+        const { car_id, client_id, sale_date, price, is_trade_in, trade_in_car_info, trade_in_discount } = req.body;
         const manager_id = req.session.user ? req.session.user.id : null;
-        await db.addSale(car_id, client_id, manager_id, sale_date, price);
+        await db.addSale(
+            car_id, 
+            client_id, 
+            manager_id, 
+            sale_date, 
+            price, 
+            is_trade_in === 'on' ? 1 : 0, 
+            trade_in_car_info || null, 
+            trade_in_discount || 0
+        );
         res.redirect('/sales');
     } catch (error) {
         console.error('Ошибка добавления продажи:', error);
-        const cars = await db.getAllCars();
-        const clients = await db.getAllClients();
-        res.render('sales/form', { sale: null, cars, clients, error: error.message, currentPage: 'sales', user: req.session.user });
+        const [cars, clients] = await Promise.all([db.getAllCars(), db.getAllClients()]);
+        res.render('sales/form', { 
+            sale: null, 
+            cars, 
+            clients, 
+            error: error.message, 
+            currentPage: 'sales', 
+            user: req.session.user 
+        });
     }
 });
 
@@ -400,6 +537,48 @@ app.post('/warranty/:id/delete', requireRole('admin', 'supervisor'), async (req,
     } catch (error) {
         console.error('Ошибка удаления гарантийного случая:', error);
         res.redirect('/warranty');
+    }
+});
+
+// ========== ТЕСТ-ДРАЙВЫ ==========
+app.get('/test-drives', async (req, res) => {
+    try {
+        const testDrives = await db.getAllTestDrives();
+        res.render('test-drives/index', { testDrives, currentPage: 'test-drives', user: req.session.user });
+    } catch (error) {
+        console.error('Ошибка загрузки тест-драйвов:', error);
+        res.render('test-drives/index', { testDrives: [], error: error.message, currentPage: 'test-drives', user: req.session.user });
+    }
+});
+
+app.get('/test-drives/new', async (req, res) => {
+    try {
+        const [cars, clients] = await Promise.all([db.getAllCars(), db.getAllClients()]);
+        res.render('test-drives/form', { cars: (cars || []).filter(c => c.status === 'available'), clients, currentPage: 'test-drives', user: req.session.user });
+    } catch (error) {
+        res.redirect('/test-drives');
+    }
+});
+
+app.post('/test-drives', async (req, res) => {
+    try {
+        const { car_id, client_id, scheduled_at } = req.body;
+        const manager_id = req.session.user ? req.session.user.id : null;
+        await db.addTestDrive(car_id, client_id, manager_id, scheduled_at);
+        res.redirect('/test-drives');
+    } catch (error) {
+        const [cars, clients] = await Promise.all([db.getAllCars(), db.getAllClients()]);
+        res.render('test-drives/form', { cars, clients, error: error.message, currentPage: 'test-drives', user: req.session.user });
+    }
+});
+
+app.post('/test-drives/:id/status', async (req, res) => {
+    try {
+        const { status, feedback } = req.body;
+        await db.updateTestDriveStatus(req.params.id, status, feedback);
+        res.redirect('/test-drives');
+    } catch (error) {
+        res.redirect('/test-drives');
     }
 });
 
